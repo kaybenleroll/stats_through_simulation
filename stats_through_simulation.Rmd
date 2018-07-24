@@ -443,9 +443,9 @@ distances.
 ```{r calculate_average_distance, echo=TRUE}
 calc_avg_dist <- function(samp_points, n_iter = 100) {
     idx <- sample(1:n_samples, n_iter, replace = TRUE)
-    
+
     dists <- samp_points[idx,] %>% dist %>% as.vector
-    
+
     return(mean(dists))
 }
 
@@ -473,8 +473,8 @@ data_unitcube <- matrix(runif(n_dim * n_samples, 0, 1), n_samples, n_dim)
 calc_sphere_prop <- function(i) {
     data_mat <- data_unitcube[,1:i]
 
-    dists <- apply(data_mat, 1, function(x) sqrt(sum(x * x)))    
-    
+    dists <- apply(data_mat, 1, function(x) sqrt(sum(x * x)))
+
     return(length(dists[dists <= 1]) / length(dists))
 }
 
@@ -655,6 +655,11 @@ clt_lowpois_data_tbl %>%
     mutate(clt_sd = sqrt(0.05) / sqrt(size))
 ```
 
+
+# $p$-Values
+
+
+# Subsampling: With vs Without Replacement
 
 
 ---
