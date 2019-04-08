@@ -4,20 +4,41 @@ author: "Mick Cooney <mickcooney@gmail.com>"
 date: "`r Sys.Date()`"
 output:
   html_document:
-    toc: true
-    number_sections: true
     fig_caption: yes
-    theme: cerulean
+    theme: spacelab #sandstone #spacelab #flatly
+    highlight: pygments
+    number_sections: TRUE
+    toc: TRUE
+    toc_depth: 2
+    toc_float:
+      smooth_scroll: FALSE
   pdf_document: default
 ---
 
 ```{r knit_opts, include = FALSE}
 rm(list = ls())
 
-library(tidyverse)
-library(scales)
-library(purrr)
-library(cowplot)
+# library(tidyverse)
+# library(scales)
+# library(purrr)
+# library(cowplot)
+
+import::from(tibble      ,as_tibble, tibble, tribble, add_column, glimpse)
+import::from(magrittr    ,"%>%", set_colnames)
+import::from(purrr       ,map, map_dbl, rerun)
+import::from(dplyr       ,mutate, filter, select, group_by, left_join, inner_join
+                         ,summarise, summarise_at, vars, distinct, sample_n
+                         ,pull, if_else, count, bind_rows, n, arrange, ungroup)
+import::from(tidyr       ,gather, spread, nest, unnest)
+import::from(ggplot2     ,ggplot, aes, xlab, ylab, ggtitle, geom_line, geom_point
+                         ,geom_histogram, geom_boxplot, geom_bar, geom_col
+                         ,scale_x_continuous, scale_y_continuous, scale_x_log10
+                         ,expand_limits, theme, element_text, facet_grid
+                         ,facet_wrap, theme_set, theme)
+import::from(scales      ,comma)
+import::from(matrixStats ,rowSds)
+
+
 
 options(width = 80L
        ,warn  = 1)
@@ -38,7 +59,7 @@ set.seed(42)
 
 
 $$
-\lim_{n \to \infty} \frac{1}{N} \sum f(X_n) p(X_n) \to E[f(X)]
+\lim_{n \to \infty} \frac{1}{N} \sum f(X_n) \, p(X_n) \to E[f(X)]
 $$
 
 $$
@@ -52,7 +73,7 @@ N <- 2^(0:25)
 
 x_vals <- rnorm(max(N), 0, 1)
 
-y_vals <- map_dbl(N, function(i) mean(x_vals[1:i]))
+y_vals <- map_dbl(N, function(i) x_vals[1:i] %>% mean())
 
 ggplot() +
     geom_line(aes(x = N, y = y_vals)) +
@@ -68,7 +89,7 @@ $$
 This function gives us expectations for the variance.
 
 ```{r lln_norm_xsq_data, echo=TRUE}
-y_vals <- map_dbl(N, function(i) mean((x_vals[1:i])^2))
+y_vals <- map_dbl(N, function(i) { (x_vals[1:i])^2 %>% mean() }) 
 
 ggplot() +
     geom_line(aes(x = N, y = y_vals)) +
@@ -79,7 +100,7 @@ ggplot() +
 
 ```{r create_calc_function, echo=TRUE}
 calc_expect <- function(size, x_vals, func) {
-    return(mean(func(x_vals[1:size])))
+    x_vals[1:size] %>% func() %>% mean()
 }
 
 y_id_vals <- map_dbl(N, calc_expect, x_vals = x_vals, func = function(x) x)
@@ -89,11 +110,11 @@ y_sq_vals <- map_dbl(N, calc_expect, x_vals = x_vals, func = function(x) x*x)
 n_iter <- 10
 
 sim_id_tbl <- rerun(n_iter
-                   ,data_frame(size = N
-                              ,vals = map_dbl(N
-                                             ,calc_expect
-                                             ,x_vals = rnorm(max(N), 0, 1)
-                                             ,func = function(x) x))) %>%
+                   ,tibble(size = N
+                          ,vals = map_dbl(N
+                                         ,calc_expect
+                                         ,x_vals = rnorm(max(N), 0, 1)
+                                         ,func = function(x) x))) %>%
     bind_rows(.id = 'sim_id')
 
 ggplot(sim_id_tbl) +
@@ -104,11 +125,11 @@ ggplot(sim_id_tbl) +
 
 
 sim_sq_tbl <- rerun(n_iter
-                   ,data_frame(size = N
-                              ,vals = map_dbl(N
-                                             ,calc_expect
-                                             ,x_vals = rnorm(max(N), 0, 1)
-                                             ,func = function(x) x*x))) %>%
+                   ,tibble(size = N
+                          ,vals = map_dbl(N
+                                         ,calc_expect
+                                         ,x_vals = rnorm(max(N), 0, 1)
+                                         ,func = function(x) x*x))) %>%
     bind_rows(.id = 'sim_id')
 
 ggplot(sim_sq_tbl) +
@@ -122,11 +143,11 @@ ggplot(sim_sq_tbl) +
 
 ```{r uniform_expectation, echo=TRUE}
 sim_id_tbl <- rerun(n_iter
-                   ,data_frame(size = N
-                              ,vals = map_dbl(N
-                                             ,calc_expect
-                                             ,x_vals = runif(max(N), 0, 1)
-                                             ,func = function(x) x))) %>%
+                   ,tibble(size = N
+                          ,vals = map_dbl(N
+                                         ,calc_expect
+                                         ,x_vals = runif(max(N), 0, 1)
+                                         ,func = function(x) x))) %>%
     bind_rows(.id = 'sim_id')
 
 ggplot(sim_id_tbl) +
@@ -137,11 +158,11 @@ ggplot(sim_id_tbl) +
 
 
 sim_sq_tbl <- rerun(n_iter
-                   ,data_frame(size = N
-                              ,vals = map_dbl(N
-                                             ,calc_expect
-                                             ,x_vals = runif(max(N), 0, 1)
-                                             ,func = function(x) x*x))) %>%
+                   ,tibble(size = N
+                          ,vals = map_dbl(N
+                                         ,calc_expect
+                                         ,x_vals = runif(max(N), 0, 1)
+                                         ,func = function(x) x*x))) %>%
     bind_rows(.id = 'sim_id')
 
 ggplot(sim_sq_tbl) +
@@ -155,11 +176,11 @@ ggplot(sim_sq_tbl) +
 
 ```{r cauchy_expectation, echo=TRUE}
 sim_id_tbl <- rerun(n_iter
-   ,data_frame(size = N
-              ,vals = map_dbl(N
-                             ,calc_expect
-                             ,x_vals      = rcauchy(max(N), 0, 1)
-                             ,func        = function(x) x))) %>%
+   ,tibble(size = N
+          ,vals = map_dbl(N
+                         ,calc_expect
+                         ,x_vals      = rcauchy(max(N), 0, 1)
+                         ,func        = function(x) x))) %>%
     bind_rows(.id = 'sim_id')
 
 ggplot(sim_id_tbl) +
@@ -170,11 +191,11 @@ ggplot(sim_id_tbl) +
 
 
 sim_sq_tbl <- rerun(n_iter
-    ,data_frame(size = N
-               ,vals = map_dbl(N
-                              ,calc_expect
-                              ,x_vals      = rcauchy(max(N), 0, 1)
-                              ,func        = function(x) x*x))) %>%
+    ,tibble(size = N
+           ,vals = map_dbl(N
+                          ,calc_expect
+                          ,x_vals      = rcauchy(max(N), 0, 1)
+                          ,func        = function(x) x*x))) %>%
     bind_rows(.id = 'sim_id')
 
 ggplot(sim_sq_tbl) +
@@ -186,56 +207,91 @@ ggplot(sim_sq_tbl) +
 
 # Expected Value
 
+## 1D6
+
 ```{r roll_d6, echo=TRUE}
-n_roll <- 10000
+n_roll <- 100000
 
 onedice <- sample(1:6, n_roll, replace = TRUE)
 
-ggplot() +
-    geom_histogram(aes(x = onedice), bins = 6) +
+ggplot(tibble(dice = onedice)) +
+    geom_bar(aes(x = dice)) +
     scale_y_continuous(labels = comma) +
     xlab("Dice Roll") +
     ylab("Count")
 
 mean(onedice)
+```
 
+## 2D6
+
+```{r roll_2d6, echo=TRUE}
 twodice_indiv <- matrix(sample(1:6, 2 * n_roll, replace = TRUE), ncol = 2)
 twodice <- rowSums(twodice_indiv)
 
-ggplot() +
-    geom_histogram(aes(x = onedice), bins = 12) +
+ggplot(tibble(dice = twodice)) +
+    geom_bar(aes(x = dice)) +
     scale_y_continuous(labels = comma) +
     xlab("Dice Roll") +
     ylab("Count")
 
 mean(twodice)
+```
 
+## 3D6
 
+```{r roll_3d6, echo=TRUE}
 threedice_indiv <- matrix(sample(1:6, 3 * n_roll, replace = TRUE), ncol = 3)
 threedice <- rowSums(threedice_indiv)
 
-ggplot() +
-    geom_histogram(aes(x = threedice), bins = 16) +
+ggplot(tibble(dice = threedice)) +
+    geom_bar(aes(x = dice)) +
     scale_y_continuous(labels = comma) +
     xlab("Dice Roll") +
     ylab("Count")
 
 mean(threedice)
+```
 
+## 4D6 - Drop Lowest
 
-drop_lowest <- function(x) x %>% sort(decreasing = TRUE) %>% .[1:3] %>% sum
+```{r roll_4d6_droplowest, echo=TRUE}
+drop_lowest <- function(x) x %>% sort(decreasing = TRUE) %>% .[1:3] %>% sum()
 
 topthree_indiv <- matrix(sample(1:6, 4 * n_roll, replace = TRUE), ncol = 4)
 topthree <- apply(topthree_indiv, 1, drop_lowest)
 
-ggplot() +
-    geom_histogram(aes(x = topthree), bins = 16) +
+ggplot(tibble(dice = topthree)) +
+    geom_bar(aes(x = dice)) +
     scale_y_continuous(labels = comma) +
     xlab("Dice Roll") +
     ylab("Count")
 
 mean(topthree)
 ```
+
+## 5D6 - Drop Extremes
+
+What if we roll 5d6 and drop both the highest and lowest result - how does
+this compare to the 3d6 rolls?
+
+```{r roll_5d6_dropextreme, echo=TRUE}
+drop_extreme <- function(x) x %>% sort() %>% .[2:4] %>% sum()
+
+five_dice <- matrix(sample(1:6, 5 * n_roll, replace = TRUE), ncol = 5)
+fivethree <- apply(five_dice, 1, drop_extreme)
+
+ggplot(tibble(dice = fivethree, orig = threedice)) +
+    geom_bar(aes(x = dice)) +
+    geom_bar(aes(x = threedice), alpha = 0.25, fill = 'red') +
+    scale_y_continuous(labels = comma) +
+    xlab("Dice Roll") +
+    ylab("Count") +
+    ggtitle("Comparison Histograms for 3D6 and 5D6 Drop Extremes")
+
+mean(fivethree)
+```
+
 
 
 # Bayes Rule
@@ -254,7 +310,7 @@ base_rate <- 0.001
 true_rate <- 0.99
 fa_rate   <- 0.05
 
-data_tbl <- data_frame(id = 1:n_sim) %>%
+data_tbl <- tibble(id = 1:n_sim) %>%
     mutate(sick_person = sample(c(TRUE, FALSE)
                                ,n_sim
                                ,prob = c(base_rate, 1 - base_rate)
@@ -299,7 +355,7 @@ How does this depend on the false alarm rate?
 
 ```{r create_test_result_data, echo = TRUE}
 create_medtest_data <- function(n_sim = 1e6, base_rate = 0.001, true_rate = 0.99, fa_rate = 0.05) {
-    data_tbl <- data_frame(id = 1:n_sim) %>%
+    data_tbl <- tibble(id = 1:n_sim) %>%
     mutate(sick_person = sample(c(TRUE, FALSE)
                                ,n_sim
                                ,prob = c(base_rate, 1 - base_rate)
@@ -350,7 +406,7 @@ What if we have multiple tests?
 
 ```{r bayes_rule_multiple_tests, echo=TRUE}
 create_two_medtest_data <- function(n_sim = 1e6, base_rate = 0.001, true_rate = 0.99, fa_rate = 0.05) {
-    data_tbl <- data_frame(id = 1:n_sim) %>%
+    data_tbl <- tibble(id = 1:n_sim) %>%
     mutate(sick_person = sample(c(TRUE, FALSE)
                                ,n_sim
                                ,prob = c(base_rate, 1 - base_rate)
@@ -392,7 +448,10 @@ create_two_medtest_data <- function(n_sim = 1e6, base_rate = 0.001, true_rate = 
 fa_vals <- seq(0.001, 0.10, by = 0.001)
 
 sick_2_prop <- map_dbl(fa_vals
-                      ,function(fa) create_two_medtest_data(10000, base_rate = 0.001, true_rate = 0.99, fa_rate = fa) %>%
+                      ,function(fa) create_two_medtest_data(10000
+                                                           ,base_rate = 0.001
+                                                           ,true_rate = 0.99
+                                                           ,fa_rate = fa) %>%
         filter(test_result_1 == TRUE, test_result_2 == TRUE) %>%
         summarise(sick_prop = sum(sick_person) / n()) %>%
         pull(sick_prop)
@@ -424,7 +483,7 @@ calc_norms <- function(i) apply(data_sample[, 1:i], 1, function(x) sqrt(sum(x * 
 
 norms <- map(dim_vals, calc_norms)
 
-plot_tbl <- data_frame(dist = norms) %>%
+plot_tbl <- tibble(dist = norms) %>%
     mutate(size = dim_vals) %>%
     unnest()
 
@@ -449,7 +508,7 @@ calc_avg_dist <- function(samp_points, n_iter = 100) {
     return(mean(dists))
 }
 
-mean_dists_tbl <- rerun(20, data_frame(size = dim_vals) %>%
+mean_dists_tbl <- rerun(20, tibble(size = dim_vals) %>%
     mutate(dist = map_dbl(dim_vals
                          ,function(i) calc_avg_dist(data_sample[,1:i], 100)))
     ) %>%
@@ -501,7 +560,7 @@ n_dim     <- max(clt_count)
 
 data_clt <- matrix(rnorm(n_dim * n_samples, 0, 1), n_samples, n_dim)
 
-clt_norm_data_tbl <- data_frame(vals = map(clt_count, function(i) rowMeans(data_clt[,1:i]))) %>%
+clt_norm_data_tbl <- tibble(vals = map(clt_count, function(i) rowMeans(data_clt[,1:i]))) %>%
     mutate(size     = clt_count
           ,size_str = factor(clt_count)
            ) %>%
@@ -531,7 +590,7 @@ n_dim     <- max(clt_count)
 
 data_clt <- matrix(runif(n_dim * n_samples, 0, 1), n_samples, n_dim)
 
-clt_unif_data_tbl <- data_frame(vals = map(clt_count, function(i) rowMeans(data_clt[,1:i]))) %>%
+clt_unif_data_tbl <- tibble(vals = map(clt_count, function(i) rowMeans(data_clt[,1:i]))) %>%
     mutate(size     = clt_count
           ,size_str = factor(clt_count)
            ) %>%
@@ -564,7 +623,7 @@ n_dim     <- max(clt_count)
 
 data_clt <- matrix(rpois(n_dim * n_samples, 0.05), n_samples, n_dim)
 
-clt_lowpois_data_tbl <- data_frame(vals = map(clt_count, function(i) rowMeans(data_clt[,1:i]))) %>%
+clt_lowpois_data_tbl <- tibble(vals = map(clt_count, function(i) rowMeans(data_clt[,1:i]))) %>%
     mutate(size     = clt_count
           ,size_str = factor(clt_count)
            ) %>%
@@ -599,7 +658,7 @@ count_rate <- 5
 
 data_clt <- matrix(rpois(n_dim * n_samples, count_rate), n_samples, n_dim)
 
-clt_lowpois_data_tbl <- data_frame(vals = map(clt_count, function(i) rowMeans(data_clt[,1:i]))) %>%
+clt_lowpois_data_tbl <- tibble(vals = map(clt_count, function(i) rowMeans(data_clt[,1:i]))) %>%
     mutate(size     = clt_count
           ,size_str = factor(clt_count)
            ) %>%
@@ -634,7 +693,7 @@ count_rate <- 100
 
 data_clt <- matrix(rpois(n_dim * n_samples, count_rate), n_samples, n_dim)
 
-clt_lowpois_data_tbl <- data_frame(vals = map(clt_count, function(i) rowMeans(data_clt[,1:i]))) %>%
+clt_lowpois_data_tbl <- tibble(vals = map(clt_count, function(i) rowMeans(data_clt[,1:i]))) %>%
     mutate(size     = clt_count
           ,size_str = factor(clt_count)
            ) %>%
@@ -656,11 +715,54 @@ clt_lowpois_data_tbl %>%
 ```
 
 
-# $p$-Values
+# Confidence Intervals
+
+## Normal Distribution: N(0,1)
+
+We take a sample of draws from $\mathcal{N}(0, 1)$. We want to use these
+samples to inferences of the underlying population mean.
+
+```{r create_sample_data, echo=TRUE}
+calc_subsamp_stats <- function(i, data_matrix) {
+    subsamp <- data_matrix[,1:i]
+    
+    mean <- rowMeans(subsamp)
+    sd   <- rowSds(subsamp) / sqrt(i)
+    
+    return(tibble(mean = mean, sd = sd))
+}
+
+is_interval_inside <- function(x, mean, sd, mult) {
+    (mean - mult * sd) < x & (mean + mult * sd) > x
+}
+
+
+clt_count <- c(2, 3, 4, 5, 10, 20, 30, 50, 100, 1000)
+
+n_samples <- 100000
+n_dim     <- max(clt_count)
+
+data_confint <- matrix(rnorm(n_dim * n_samples, 0, 1), n_samples, n_dim)
+
+confint_tbl <- tibble(size = clt_count) %>%
+    mutate(data = map(size, calc_subsamp_stats, data_matrix = data_confint)) %>%
+    unnest() %>%
+    mutate(inside_1sd = is_interval_inside(0, mean, sd, 1)
+          ,inside_2sd = is_interval_inside(0, mean, sd, 2)
+           ) %>%
+    group_by(size) %>%
+    summarise(prop_1sd = sum(inside_1sd) / n()
+             ,prop_2sd = sum(inside_2sd) / n()
+              )
+
+confint_tbl %>% print()
+```
+
+
+# p-Value
 
 
 # Subsampling: With vs Without Replacement
-
 
 ---
 
@@ -672,4 +774,4 @@ mickcooney@gmail.com
 
 \
 
-https://github.com/kaybenleroll/dublin_r_workshops
+https://github.com/kaybenleroll/stats_through_simulation
